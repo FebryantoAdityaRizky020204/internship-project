@@ -22,8 +22,22 @@ class AuthController extends Controller
             return $user->createToken('auth_token')->plainTextToken;
         }
 
-        throw ValidationException::withMessages([
-            'username' => ['The provided credentials are incorrect.'],
-        ]);
+        throw ValidationException::withMessages([]);
+    }
+
+    public function logout(Request $request)
+    {
+        if ($request->user() && $request->user()->currentAccessToken()) {
+            $request->user()->currentAccessToken()->delete();
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Logged out successfully'
+            ]);
+        } else {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No active token found',
+            ], 400);
+        }
     }
 }
