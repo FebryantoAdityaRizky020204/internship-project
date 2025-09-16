@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CCTVLocation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class CCTVLocationController extends Controller
 {
@@ -13,7 +14,19 @@ class CCTVLocationController extends Controller
     public function index()
     {
         $cctvLocations = CCTVLocation::all();
-        return response()->json($cctvLocations);
+        if($cctvLocations->isEmpty()){
+            return response()->json([
+                'status' => 'failed',
+                'message' => 'No CCTV found'
+            ], 404);
+        } else {
+            $response = [
+                'status' => 'success',
+                'message' => 'CCTV Locations retrieved successfully',
+                'data' => $cctvLocations
+            ];
+            return response()->json($response, 200);
+        }
     }
 
     /**
@@ -21,18 +34,32 @@ class CCTVLocationController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        $rules = [
             'street_name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
             'stream_url' => 'required|url',
-            'status' => 'required|boolean',
-        ]);
+            'status' => 'required|in:aktif,nonaktif',
+        ];
 
-        $cctvLocation = CCTVLocation::create($request->all());
+        $validator = Validator::make($request->all(), $rules);
 
-        return response()->json($cctvLocation, 201);
+        if($validator->fails()){
+            return response()->json([
+                'status' => "failed",
+                'message' => 'validasi error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $cctv = CCTVLocation::create($request->all());
+        $response = [
+            'status' => 'success',
+            'message' => 'CCTV Added successfully',
+            'data' => $cctv
+        ];
+        return response()->json($response, 201);
     }
 
     /**
@@ -41,7 +68,18 @@ class CCTVLocationController extends Controller
     public function show(string $id)
     {
         $cctvLocation = CCTVLocation::findOrFail($id);
-        return response()->json($cctvLocation);
+        if ($cctvLocation) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'CCTV retrieved successfully',
+                'data' => $cctvLocation,
+            ], 200);
+        }
+
+        return response()->json([
+            'status' => 'failed',
+            'message' => 'CCTV not found',
+        ], 404);
     }
 
     /**
@@ -49,19 +87,33 @@ class CCTVLocationController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $request->validate([
-            'street_name' => 'sometimes|required|string|max:255',
+        $rules = [
+            'street_name' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
-            'latitude' => 'sometimes|required|numeric',
-            'longitude' => 'sometimes|required|numeric',
-            'stream_url' => 'sometimes|required|url',
-            'status' => 'sometimes|required|boolean',
-        ]);
+            'latitude' => 'sometimes|numeric',
+            'longitude' => 'sometimes|numeric',
+            'stream_url' => 'sometimes|url',
+            'status' => 'sometimes|boolean',
+        ];
 
-        $cctvLocation = CCTVLocation::findOrFail($id);
-        $cctvLocation->update($request->all());
+        $validator = Validator::make($request->all(), $rules);
 
-        return response()->json($cctvLocation);
+        if($validator->fails()){
+            return response()->json([
+                'status' => "failed",
+                'message' => 'validasi error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $cctv = CCTVLocation::findOrFail($id);
+        $cctv->update($request->all());
+        $response = [
+            'status' => 'success',
+            'message' => 'CCTV Updated successfully',
+            'data' => $cctv
+        ];
+        return response()->json($response, 201);
     }
 
     /**
@@ -71,7 +123,11 @@ class CCTVLocationController extends Controller
     {
         $cctvLocation = CCTVLocation::findOrFail($id);
         $cctvLocation->delete();
+        $response = [
+            'status' => 'success',
+            'message' => 'CCTV deleted successfully',
+        ];
 
-        return response()->json(null, 204);
+        return response()->json($response, 202);
     }
 }

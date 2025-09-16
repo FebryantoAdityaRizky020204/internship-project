@@ -15,8 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('street_name', 100);
             $table->text('description')->nullable();
-            $table->decimal('latitude');
-            $table->decimal('longitude');
+            $table->decimal('latitude', 11, 8);
+            $table->decimal('longitude', 11, 8);
             $table->text('stream_url');
             $table->enum('status', ['aktif', 'nonaktif'])->default('aktif');
             $table->timestamps();

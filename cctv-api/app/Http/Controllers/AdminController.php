@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Admin;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -16,7 +17,7 @@ class AdminController extends Controller
         $admins = Admin::all();
         if ($admins->isEmpty()) {
             return response()->json([
-                'status' => 'empty',
+                'status' => 'failed',
                 'message' => 'No admins found'
             ], 404);
         } else {
@@ -40,26 +41,28 @@ class AdminController extends Controller
             'email' => 'required|email|unique:admins,email',
         ];
 
-        if ($request->validate($rules)) {
-            $admin = Admin::create([
-                'username' => $request->username,
-                'password' => Hash::make($request->password),
-                'email' => $request->email,
-            ]);
+        $validator = Validator::make($request->all(), $rules);
 
-            $response = [
-                'status' => 'success',
-                'message' => 'Admin created successfully',
-                'data' => $admin
-            ];
-            return response()->json($response, 201);
-        } else {
-            $response = [
-                'status' => 'error',
-                'message' => 'Validation failed'
-            ];
-            return response()->json($response, 422);
+        if($validator->fails()){
+            return response()->json([
+                'status' => "failed",
+                'message' => 'validasi error',
+                'errors' => $validator->errors()
+            ], 422);
         }
+
+        $admin = Admin::create([
+            'username' => $request->username,
+            'password' => Hash::make($request->password),
+            'email' => $request->email,
+        ]);
+
+        $response = [
+            'status' => 'success',
+            'message' => 'Admin created successfully',
+            'data' => $admin
+        ];
+        return response()->json($response, 201);
     }
 
     /**
@@ -73,12 +76,12 @@ class AdminController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'Admin retrieved successfully',
-                'data' => $admin
+                'data' => $admin,
             ], 200);
         }
 
         return response()->json([
-            'status' => 'error',
+            'status' => 'failed',
             'message' => 'Admin not found',
         ], 404);
     }
@@ -89,50 +92,30 @@ class AdminController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        // Siapkan rules validasi
-        $rules = [];
+        $rules = [
+            'username' => 'sometimes|string|max:100|unique:admins',
+            'password' => 'sometimes|string|min:8',
+            'email' => 'sometimes|email|unique:admins,email',
+        ];
 
-        if ($request->has('password')) {
-            $rules['password'] = 'required|string|min:8';
-        }
+        $validator = Validator::make($request->all(), $rules);
 
-        if ($request->has('email')) {
-            $rules['email'] = 'required|email|unique:admins,email,'.$id.',id_admin';
-        }
-
-        if ($request->has('username')) {
-            $rules['username'] = 'required|string|max:100|unique:admins,username,'.$id.',id_admin';
-        }
-
-        // Validasi request (hanya kalau ada rules)
-        if (! empty($rules)) {
-            $validatedData = $request->validate($rules);
-        } else {
-            $validatedData = $request->all();
+        if($validator->fails()){
+            return response()->json([
+                'status' => "failed",
+                'message' => 'validasi error',
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         // Cari admin (findOrFail otomatis 404 kalau tidak ada)
         $admin = Admin::findOrFail($id);
-
-        // Update field
-        if (isset($validatedData['username'])) {
-            $admin->username = $validatedData['username'];
-        }
-
-        if (isset($validatedData['email'])) {
-            $admin->email = $validatedData['email'];
-        }
-
-        if (isset($validatedData['password'])) {
-            $admin->password = Hash::make($validatedData['password']);
-        }
-
-        $admin->save();
+        $admin->update($request->all());
 
         return response()->json([
             'status' => 'success',
             'message' => 'Admin updated successfully',
-            'data' => $admin
+            'data' => $admin,
         ], 200);
     }
 
@@ -142,7 +125,7 @@ class AdminController extends Controller
     public function destroy(string $id)
     {
         $admin = Admin::findOrFail($id);
-        if (! $admin) {
+        if (!$admin) {
             return response()->json(['message' => 'Admin not found'], 404);
         }
         // Check if the admin is the last admin
@@ -156,6 +139,6 @@ class AdminController extends Controller
             'status' => 'success',
             'message' => 'Admin deleted successfully',
         ];
-        return response()->json($response, 204);
+        return response()->json($response, 202);
     }
 }
