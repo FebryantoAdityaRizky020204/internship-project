@@ -1,92 +1,135 @@
 "use client";
 
-import React, { memo, useState } from "react";
+import React, { memo, useEffect, useMemo, useRef } from "react";
 import {
   MapContainer,
   TileLayer,
   Marker,
-  useMap,
   ZoomControl,
+  Tooltip,
+  useMap,
 } from "react-leaflet";
-import { Icon, LatLngLiteral } from "leaflet";
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
-import "leaflet-defaulticon-compatibility";
-import { Location } from "@/icons";
-// Hapus import CSS kustom karena sudah diganti dengan Tailwind
 
-// type MapType = "roadmap" | "satellite" | "hybrid" | "terrain";
+export interface MapLocation {
+  id: number;
+  lat: number;
+  lng: number;
+  name: string;
+  description?: string;
+}
 
-type MapLocation = LatLngLiteral & { id: string };
-
-type MapProps = {
-  center: LatLngLiteral;
+interface MapProps {
+  center: [number, number];
   locations: MapLocation[];
-};
+  locationSelected: MapLocation | null;
+  setLocationSelected: (loc: MapLocation | null) => void;
+  sidebarOpen: boolean;
+  setSidebarOpen: (v: boolean) => void;
+  setVideoSelected?: (v: string | null) => void;
+}
 
-const SelectedLocation = ({ center }: { center: LatLngLiteral }) => {
+// ─────────────────────────────
+// Utility Icons
+// ─────────────────────────────
+const defaultIcon = new L.Icon({
+  iconUrl: "/marker-icon.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+
+const selectedIcon = new L.Icon({
+  iconUrl: "/marker-icon-selected.png",
+  iconSize: [30, 48],
+  iconAnchor: [15, 48],
+});
+
+// ─────────────────────────────
+// Smooth fly to location change
+// ─────────────────────────────
+const ChangeMapView = memo(({ location }: { location: MapLocation }) => {
   const map = useMap();
-  map.panTo(center, { animate: true });
-  return null;
-};
+  const prev = useRef(location);
 
+  useEffect(() => {
+    if (
+      location.lat !== prev.current.lat ||
+      location.lng !== prev.current.lng
+    ) {
+      map.flyTo([location.lat, location.lng], map.getZoom(), { duration: 1 });
+      prev.current = location;
+    }
+  }, [location, map]);
+
+  return null;
+});
+ChangeMapView.displayName = "ChangeMapView";
+
+// ─────────────────────────────
+// Main Map Component
+// ─────────────────────────────
 export const LeafletMap: React.FC<MapProps> = memo(function LeafletMap({
   center,
   locations = [],
+  locationSelected,
+  setLocationSelected,
+  sidebarOpen,
 }) {
-  // const [mapType, setMapType] = useState<MapType>("roadmap");
-  const [selectedLocation, setSelectedLocation] = useState<
-    MapLocation | undefined
-  >(locations.length > 0 ? locations[0] : undefined);
+  const mapRef = useRef<L.Map | null>(null);
 
-  const mapMarkIcon = new Icon({
-    iconUrl: "@/icons/location.svg",
-    iconSize: [47, 55],
-  });
-  const mapMarkActiveIcon = new Icon({
-    iconUrl: "@/icons/location-active.svg",
-    iconSize: [57, 65],
-  });
+  // Invalidate size when sidebar toggled (tanpa re-render)
+  useEffect(() => {
+    const handler = () => {
+      const map = mapRef.current;
+      if (map) setTimeout(() => map.invalidateSize(), 350);
+    };
+    window.addEventListener("resize-map", handler);
+    return () => window.removeEventListener("resize-map", handler);
+  }, []);
+
+  // Trigger global resize event ketika sidebarOpen berubah
+  useEffect(() => {
+    window.dispatchEvent(new Event("resize-map"));
+  }, [sidebarOpen]);
+
+  // Cache marker rendering
+  const markers = useMemo(
+    () =>
+      locations.map((location) => (
+        <Marker
+          key={location.id}
+          position={[location.lat, location.lng]}
+          icon={
+            locationSelected?.id === location.id ? selectedIcon : defaultIcon
+          }
+          eventHandlers={{
+            click: () => setLocationSelected(location),
+          }}
+        >
+          <Tooltip>{location.name}</Tooltip>
+        </Marker>
+      )),
+    [locations, locationSelected, setLocationSelected],
+  );
 
   return (
-    <>
-      <div className="relative">
-        <MapContainer
-          center={center}
-          zoom={13}
-          minZoom={5}
-          zoomControl={false}
-          attributionControl={false}
-          // Tambahkan styling Tailwind untuk ukuran dan tampilan
-          className="h-[500px] w-full rounded-lg shadow-lg"
-        >
-          {/* <TileLayer url={getUrl()} /> */}
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-          />
-          {selectedLocation && <SelectedLocation center={selectedLocation} />}
-
-          {locations.map((location) => (
-            <Marker
-              key={location.id}
-              icon={
-                location.id === selectedLocation?.id
-                  ? mapMarkActiveIcon
-                  : mapMarkIcon
-              }
-              position={{ lat: location.lat, lng: location.lng }}
-              eventHandlers={{
-                click: () => {
-                  setSelectedLocation(location);
-                },
-              }}
-            />
-          ))}
-
-          <ZoomControl position="topright" />
-        </MapContainer>
-      </div>
-    </>
+    <MapContainer
+      center={center}
+      zoom={15}
+      minZoom={5}
+      zoomControl={false}
+      attributionControl={false}
+      className="w-full rounded-lg shadow-lg lg:h-[calc(100vh-6.5rem)]"
+    >
+      <TileLayer
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution="&copy; OpenStreetMap contributors"
+      />
+      <ZoomControl position="bottomright" />
+      {markers}
+      {locationSelected && <ChangeMapView location={locationSelected} />}
+    </MapContainer>
   );
 });
+LeafletMap.displayName = "LeafletMap";

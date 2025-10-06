@@ -54,8 +54,14 @@ import BellIcon from "./bell.svg";
 import Map from "./map.svg";
 import Location from "./location.svg";
 import LocationAdd from "./location-add.svg";
+import Menu from "./menu.svg";
+import TextWrap from "./text-wrap.svg";
+import Play from "./play.svg";
 
 export {
+  Play,
+  TextWrap,
+  Menu,
   Map,
   Location,
   LocationAdd,
