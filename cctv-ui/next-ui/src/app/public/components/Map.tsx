@@ -40,21 +40,20 @@ const MapView = ({
     lat: -2.2145732323893963,
     lng: 113.9204322377771,
   };
+
   return (
-    <>
-      <Map
-        center={{
-          lat: locationSelected?.lat ?? centerMap.lat,
-          lng: locationSelected?.lng ?? centerMap.lng,
-        }}
-        locations={locations ?? []}
-        locationSelected={locationSelected}
-        setLocationSelected={setLocationSelected}
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-        setVideoSelected={setVideoSelected}
-      />
-    </>
+    <Map
+      center={{
+        lat: locationSelected?.lat ?? centerMap.lat,
+        lng: locationSelected?.lng ?? centerMap.lng,
+      }}
+      locations={locations ?? []}
+      locationSelected={locationSelected}
+      setLocationSelected={setLocationSelected}
+      sidebarOpen={sidebarOpen}
+      setSidebarOpen={setSidebarOpen}
+      setVideoSelected={setVideoSelected}
+    />
   );
 };
 

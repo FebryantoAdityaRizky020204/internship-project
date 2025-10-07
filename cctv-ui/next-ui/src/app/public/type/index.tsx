@@ -5,4 +5,5 @@ export type TypeLocation = {
   name: string;
   link: string;
   address: string;
+  status: "ACTIVE" | "OFF";
 };

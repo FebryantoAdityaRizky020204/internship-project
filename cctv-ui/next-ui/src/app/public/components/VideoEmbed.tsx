@@ -6,7 +6,7 @@ type VideoEmbedProps = {
 
 const VideoEmbed = ({ locationSelected }: VideoEmbedProps) => {
   return (
-    <div className="h-[280px] w-auto overflow-hidden rounded-lg">
+    <div className="h-60% w-full overflow-hidden rounded-lg md:h-[280px] md:w-full">
       <iframe
         src={locationSelected.link}
         title="YouTube video"

@@ -1,53 +1,51 @@
 "use client";
 
-import React, { memo, useEffect, useMemo, useRef } from "react";
+import React, { memo, useState, useEffect, useRef, useMemo } from "react";
 import {
   MapContainer,
   TileLayer,
   Marker,
-  ZoomControl,
-  Tooltip,
   useMap,
+  ZoomControl,
 } from "react-leaflet";
-import L from "leaflet";
+import { Icon, LatLngLiteral } from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
+import "leaflet-defaulticon-compatibility";
+import { TypeLocation } from "@/app/public/type";
 
-export interface MapLocation {
-  id: number;
-  lat: number;
-  lng: number;
-  name: string;
-  description?: string;
-}
+type MapLocation = LatLngLiteral & { id: string };
 
-interface MapProps {
-  center: [number, number];
-  locations: MapLocation[];
-  locationSelected: MapLocation | null;
-  setLocationSelected: (loc: MapLocation | null) => void;
+type MapProps = {
+  center: { lat: number; lng: number };
+  locations: TypeLocation[];
+  locationSelected: TypeLocation | undefined;
+  setLocationSelected: (value: TypeLocation | undefined) => void;
   sidebarOpen: boolean;
-  setSidebarOpen: (v: boolean) => void;
-  setVideoSelected?: (v: string | null) => void;
-}
+  setSidebarOpen: (value: boolean) => void;
+  setVideoSelected: (value: boolean) => void;
+};
 
-// ─────────────────────────────
-// Utility Icons
-// ─────────────────────────────
-const defaultIcon = new L.Icon({
-  iconUrl: "/marker-icon.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
+// 🔹 Icon default & aktif
+const mapMarkIconActive = new Icon({
+  iconUrl: "/images/icons/cctv_active.svg",
+  iconSize: [25, 35],
+  iconAnchor: [12.5, 35],
 });
 
-const selectedIcon = new L.Icon({
-  iconUrl: "/marker-icon-selected.png",
-  iconSize: [30, 48],
-  iconAnchor: [15, 48],
+const mapMarkIconOff = new Icon({
+  iconUrl: "/images/icons/cctv_off.svg",
+  iconSize: [25, 35],
+  iconAnchor: [12.5, 35],
 });
 
-// ─────────────────────────────
-// Smooth fly to location change
-// ─────────────────────────────
+const mapMarkActiveIcon = new Icon({
+  iconUrl: "/images/icons/scan-eye.svg",
+  iconSize: [25, 35],
+  iconAnchor: [12.5, 35],
+});
+
+// 🔹 Komponen untuk memindahkan peta ke lokasi baru
 const ChangeMapView = memo(({ location }: { location: MapLocation }) => {
   const map = useMap();
   const prev = useRef(location);
@@ -66,70 +64,103 @@ const ChangeMapView = memo(({ location }: { location: MapLocation }) => {
 });
 ChangeMapView.displayName = "ChangeMapView";
 
-// ─────────────────────────────
-// Main Map Component
-// ─────────────────────────────
+// 🔹 Invalidasi ukuran map setiap sidebar berubah
+const InvalidateSizeOnSidebarChange = memo(
+  ({ sidebarOpen }: { sidebarOpen?: boolean }) => {
+    const map = useMap();
+
+    useEffect(() => {
+      const timeout = setTimeout(() => {
+        map.invalidateSize();
+      }, 500);
+      return () => clearTimeout(timeout);
+    }, [sidebarOpen, map]);
+
+    return null;
+  },
+);
+InvalidateSizeOnSidebarChange.displayName = "InvalidateSizeOnSidebarChange";
+
 export const LeafletMap: React.FC<MapProps> = memo(function LeafletMap({
   center,
   locations = [],
   locationSelected,
   setLocationSelected,
   sidebarOpen,
+  setSidebarOpen,
+  setVideoSelected,
 }) {
   const mapRef = useRef<L.Map | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<
+    MapLocation | undefined
+  >(undefined);
 
-  // Invalidate size when sidebar toggled (tanpa re-render)
   useEffect(() => {
-    const handler = () => {
-      const map = mapRef.current;
-      if (map) setTimeout(() => map.invalidateSize(), 350);
-    };
-    window.addEventListener("resize-map", handler);
-    return () => window.removeEventListener("resize-map", handler);
-  }, []);
+    if (locationSelected) setSelectedLocation(locationSelected);
+    else setSelectedLocation(undefined);
+  }, [locationSelected]);
 
-  // Trigger global resize event ketika sidebarOpen berubah
-  useEffect(() => {
-    window.dispatchEvent(new Event("resize-map"));
-  }, [sidebarOpen]);
-
-  // Cache marker rendering
   const markers = useMemo(
     () =>
       locations.map((location) => (
         <Marker
           key={location.id}
-          position={[location.lat, location.lng]}
           icon={
-            locationSelected?.id === location.id ? selectedIcon : defaultIcon
+            location.id === selectedLocation?.id
+              ? mapMarkActiveIcon
+              : location.status === "ACTIVE"
+                ? mapMarkIconActive
+                : mapMarkIconOff
           }
+          position={{ lat: location.lat, lng: location.lng }}
           eventHandlers={{
-            click: () => setLocationSelected(location),
+            click: () => {
+              const same = location.id === selectedLocation?.id;
+              const newSelected = same ? undefined : location;
+              setSelectedLocation(newSelected);
+              setLocationSelected(newSelected);
+              setSidebarOpen(true);
+              setVideoSelected(newSelected != undefined);
+            },
           }}
-        >
-          <Tooltip>{location.name}</Tooltip>
-        </Marker>
+        />
       )),
-    [locations, locationSelected, setLocationSelected],
+    [
+      locations,
+      selectedLocation,
+      setLocationSelected,
+      setSidebarOpen,
+      setVideoSelected,
+    ],
   );
 
   return (
-    <MapContainer
-      center={center}
-      zoom={15}
-      minZoom={5}
-      zoomControl={false}
-      attributionControl={false}
-      className="w-full rounded-lg shadow-lg lg:h-[calc(100vh-6.5rem)]"
+    <div
+      className={`relative rounded-lg shadow-lg transition-all duration-300 ${
+        sidebarOpen ? "h-full" : "h-[calc(100vh-6.5rem)]"
+      }`}
     >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution="&copy; OpenStreetMap contributors"
-      />
-      <ZoomControl position="bottomright" />
-      {markers}
-      {locationSelected && <ChangeMapView location={locationSelected} />}
-    </MapContainer>
+      <MapContainer
+        ref={mapRef}
+        center={center}
+        zoom={15}
+        minZoom={1}
+        zoomControl={false}
+        attributionControl={false}
+        className={`h-full w-full rounded-lg shadow-lg transition-all duration-300`}
+      >
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+        />
+
+        {selectedLocation && <ChangeMapView location={selectedLocation} />}
+        <InvalidateSizeOnSidebarChange sidebarOpen={sidebarOpen} />
+
+        {markers}
+
+        <ZoomControl position="topright" />
+      </MapContainer>
+    </div>
   );
 });
-LeafletMap.displayName = "LeafletMap";

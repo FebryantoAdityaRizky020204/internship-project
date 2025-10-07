@@ -57,8 +57,12 @@ import LocationAdd from "./location-add.svg";
 import Menu from "./menu.svg";
 import TextWrap from "./text-wrap.svg";
 import Play from "./play.svg";
+import CCTVActive from "./cctv_active.svg";
+import CCTVOff from "./cctv_off.svg";
 
 export {
+  CCTVActive,
+  CCTVOff,
   Play,
   TextWrap,
   Menu,

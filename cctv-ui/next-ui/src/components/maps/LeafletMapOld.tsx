@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo, useState, useEffect } from "react";
+import React, { memo, useState, useEffect, useRef, useMemo } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -26,53 +26,54 @@ type MapProps = {
   setVideoSelected: (value: boolean) => void;
 };
 
+// 🔹 Icon default & aktif
 const mapMarkIcon = new Icon({
   iconUrl: "/images/icons/location.svg",
   iconSize: [25, 35],
-  iconAnchor: [28.5, 65],
+  iconAnchor: [12.5, 35],
 });
 
 const mapMarkActiveIcon = new Icon({
   iconUrl: "/images/icons/location-active.svg",
   iconSize: [25, 35],
-  iconAnchor: [28.5, 65],
+  iconAnchor: [12.5, 35],
 });
 
-const ChangeMapView = ({ location }: { location: MapLocation }) => {
+// 🔹 Komponen untuk memindahkan peta ke lokasi baru
+const ChangeMapView = memo(({ location }: { location: MapLocation }) => {
   const map = useMap();
+  const prev = useRef(location);
 
   useEffect(() => {
-    map.flyTo([location.lat, location.lng], map.getZoom(), { duration: 1.2 });
+    if (
+      location.lat !== prev.current.lat ||
+      location.lng !== prev.current.lng
+    ) {
+      map.flyTo([location.lat, location.lng], map.getZoom(), { duration: 1 });
+      prev.current = location;
+    }
   }, [location, map]);
 
   return null;
-};
+});
+ChangeMapView.displayName = "ChangeMapView";
 
-// 🔹 Komponen untuk memaksa Leaflet update layout ketika sidebar berubah
-const InvalidateSizeOnSidebarChange = ({
-  sidebarOpen,
-}: {
-  sidebarOpen?: boolean;
-}) => {
-  const map = useMap();
+// 🔹 Invalidasi ukuran map setiap sidebar berubah
+const InvalidateSizeOnSidebarChange = memo(
+  ({ sidebarOpen }: { sidebarOpen?: boolean }) => {
+    const map = useMap();
 
-  useEffect(() => {
-    // Beri sedikit delay agar transisi Tailwind selesai dulu
-    const timeout = setTimeout(() => {
-      map.invalidateSize();
-    }, 300); // sesuaikan dengan durasi animasi sidebar kamu
-    return () => clearTimeout(timeout);
-  }, [sidebarOpen, map]);
+    useEffect(() => {
+      const timeout = setTimeout(() => {
+        map.invalidateSize();
+      }, 350);
+      return () => clearTimeout(timeout);
+    }, [sidebarOpen, map]);
 
-  // Update juga kalau window diresize
-  useEffect(() => {
-    const handleResize = () => map.invalidateSize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [map]);
-
-  return null;
-};
+    return null;
+  },
+);
+InvalidateSizeOnSidebarChange.displayName = "InvalidateSizeOnSidebarChange";
 
 export const LeafletMap: React.FC<MapProps> = memo(function LeafletMap({
   center,
@@ -83,6 +84,7 @@ export const LeafletMap: React.FC<MapProps> = memo(function LeafletMap({
   setSidebarOpen,
   setVideoSelected,
 }) {
+  const mapRef = useRef<L.Map | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<
     MapLocation | undefined
   >(undefined);
@@ -92,9 +94,42 @@ export const LeafletMap: React.FC<MapProps> = memo(function LeafletMap({
     else setSelectedLocation(undefined);
   }, [locationSelected]);
 
+  const markers = useMemo(
+    () =>
+      locations.map((location) => (
+        <Marker
+          key={location.id}
+          icon={
+            location.id === selectedLocation?.id
+              ? mapMarkActiveIcon
+              : mapMarkIcon
+          }
+          position={{ lat: location.lat, lng: location.lng }}
+          eventHandlers={{
+            click: () => {
+              const same = location.id === selectedLocation?.id;
+              const newSelected = same ? undefined : location;
+              setSelectedLocation(newSelected);
+              setLocationSelected(newSelected);
+              setSidebarOpen(true);
+              setVideoSelected(true);
+            },
+          }}
+        />
+      )),
+    [
+      locations,
+      selectedLocation,
+      setLocationSelected,
+      setSidebarOpen,
+      setVideoSelected,
+    ],
+  );
+
   return (
     <div className="relative">
       <MapContainer
+        ref={mapRef}
         center={center}
         zoom={15}
         minZoom={5}
@@ -107,51 +142,10 @@ export const LeafletMap: React.FC<MapProps> = memo(function LeafletMap({
           attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
         />
 
-        {/* Jalankan flyTo jika lokasi berubah */}
         {selectedLocation && <ChangeMapView location={selectedLocation} />}
+        <InvalidateSizeOnSidebarChange sidebarOpen={sidebarOpen} />
 
-        {/* Jalankan invalidateSize setiap kali sidebar berubah */}
-        <InvalidateSizeOnSidebarChange
-          key={String(sidebarOpen)}
-          sidebarOpen={sidebarOpen}
-        />
-
-        {locations.map((location) => (
-          <Marker
-            key={location.id}
-            icon={
-              location.id === selectedLocation?.id
-                ? mapMarkActiveIcon
-                : mapMarkIcon
-            }
-            position={{ lat: location.lat, lng: location.lng }}
-            eventHandlers={{
-              click: () => {
-                const isSame = location.id === selectedLocation?.id;
-                const newSelected = isSame ? undefined : location;
-                setSelectedLocation(newSelected);
-                setLocationSelected(newSelected);
-                setSidebarOpen(true);
-                setVideoSelected(true);
-              },
-            }}
-          >
-            {/* {location.id === selectedLocation?.id && (
-              <Tooltip
-                direction="top"
-                offset={[0, -55]}
-                opacity={1}
-                permanent
-                className="max-w-[850px] min-w-[400px] rounded-lg border border-gray-200 bg-white p-2 text-xs font-bold !whitespace-normal text-gray-800 shadow-lg"
-              >
-                <div className="flex flex-col">
-                  <div className="font-bold">{`nama: ${location.name}`}</div>
-                  <div className="mt-1">{`alamat: ${location.address}`}</div>
-                </div>
-              </Tooltip>
-            )} */}
-          </Marker>
-        ))}
+        {markers}
 
         <ZoomControl position="topright" />
       </MapContainer>

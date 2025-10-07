@@ -20,11 +20,20 @@ const Sidebar = ({
   return (
     <>
       {videoSelected && locationSelected && (
-        <div className="col-span-3 row-span-4">
+        <div className="col-span-3 row-span-3 row-start-3 md:col-span-3 md:row-span-4">
           <div
             className={`static m-2 max-h-[calc(100%-20px)] min-h-[calc(100%-20px)] overflow-hidden rounded-sm border border-gray-300 bg-gray-50 p-2 dark:border-gray-800 dark:bg-white/[0.03]`}
           >
-            <VideoEmbed locationSelected={locationSelected} />
+            {locationSelected.status === "ACTIVE" && (
+              <VideoEmbed locationSelected={locationSelected} />
+            )}
+
+            {locationSelected.status === "OFF" && (
+              <div className="flex h-[280px] w-auto items-center justify-center overflow-hidden rounded-lg border border-gray-300 bg-gray-200 font-bold text-black dark:border-gray-500 dark:bg-gray-600 dark:text-white">
+                <h3>MAAF, CCTV BERMASALAH</h3>
+              </div>
+            )}
+
             <div className="mt-2 flex flex-row justify-between rounded-sm p-3 font-bold">
               <h3>{locationSelected.name}</h3>
               <button
@@ -43,7 +52,7 @@ const Sidebar = ({
       )}
 
       <div
-        className={` ${videoSelected ? "col-span-3 row-span-2 row-start-5" : "col-span-3 col-start-1 row-span-6 row-start-1"} p-1 transition-all duration-300 ease-in-out`}
+        className={` ${videoSelected ? "col-span-3 row-span-1 row-start-6 md:col-span-3 md:row-span-2 md:row-start-5" : "col-span-3 row-span-2 row-start-5 md:col-span-3 md:col-start-1 md:row-span-6 md:row-start-1"} p-1 transition-all duration-300 ease-in-out`}
       >
         <div
           className={`m-0.5 max-h-[calc(100%-10px)] w-full overflow-auto rounded-sm border border-gray-300 p-2 dark:border-gray-800 dark:bg-white/[0.03]`}
@@ -56,6 +65,7 @@ const Sidebar = ({
                   setVideoSelected={setVideoSelected}
                   location={location}
                   setLocationSelected={setLocationSelected}
+                  locationSelected={locationSelected}
                   key={location.id}
                 />
               ))}
