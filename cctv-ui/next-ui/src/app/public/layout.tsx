@@ -1,9 +1,9 @@
 "use client";
 
-import PublicHeader from "@/layout/PublicHeader";
+import PublicHeader from "./components/PublicHeader";
 import React from "react";
 
-export default function AdminLayout({
+export default function PublicLayout({
   children,
 }: {
   children: React.ReactNode;

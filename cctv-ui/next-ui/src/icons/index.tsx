@@ -59,8 +59,10 @@ import TextWrap from "./text-wrap.svg";
 import Play from "./play.svg";
 import CCTVActive from "./cctv_active.svg";
 import CCTVOff from "./cctv_off.svg";
+import AtSign from "./at-sign.svg";
 
 export {
+  AtSign,
   CCTVActive,
   CCTVOff,
   Play,

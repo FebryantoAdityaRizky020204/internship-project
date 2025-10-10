@@ -5,6 +5,7 @@ import { Menu, TextWrap } from "@/icons";
 import Sidebar from "./sidebar";
 import { TypeLocation } from "../type";
 import MapView from "../components/Map";
+import CopyrightDropdown from "./copyrightDropdown";
 
 type PublicPageViewProps = {
   locations: TypeLocation[];
@@ -20,8 +21,14 @@ const PublicPageView = ({ locations }: PublicPageViewProps) => {
   return (
     <>
       <div
-        className={`grid max-h-[calc(100vh-76px)] min-h-[calc(100vh-76px)] grid-cols-3 grid-rows-6 gap-2 overflow-hidden md:grid-cols-5`}
+        className={`relative grid max-h-[calc(100vh-76px)] min-h-[calc(100vh-76px)] grid-cols-3 grid-rows-6 gap-2 overflow-hidden md:grid-cols-5`}
       >
+        {/* COPYRIGHT START*/}
+        <div className="text-gray-dark absolute right-1 bottom-1 z-999 rounded rounded-br-sm border border-white bg-white font-bold dark:border-gray-700 dark:bg-gray-800 dark:text-white">
+          <CopyrightDropdown />
+        </div>
+        {/* COPYRIGHT END */}
+
         {/* Sidebar */}
         {sidebarOpen && (
           <Sidebar
@@ -35,7 +42,7 @@ const PublicPageView = ({ locations }: PublicPageViewProps) => {
         {/* End Sidebar */}
 
         <div
-          className={` ${!sidebarOpen && !videoSelected ? "col-span-3 md:col-span-5" : ""} ${sidebarOpen && !videoSelected ? "col-span-3 row-span-4 md:col-span-2 md:col-start-4" : ""} ${sidebarOpen && videoSelected ? "col-span-3 row-span-2 row-start-1" : ""} transition-all duration-300 ease-in-out md:row-span-6`}
+          className={` ${!sidebarOpen && !videoSelected ? "col-span-3 md:col-span-5" : ""} ${sidebarOpen && !videoSelected ? "col-span-3 row-span-4 md:col-span-2 md:col-start-4" : ""} ${sidebarOpen && videoSelected ? "col-span-3 row-span-2 row-start-1 md:col-span-2 md:col-start-4 md:row-span-6 md:row-start-1" : ""} transition-all duration-300 ease-in-out md:row-span-6`}
         >
           {/* Toggle button */}
           <div className="absolute z-999 rounded-tl-sm rounded-br-sm border-gray-800 bg-white p-1 dark:border-gray-900 dark:bg-gray-900">
@@ -53,7 +60,6 @@ const PublicPageView = ({ locations }: PublicPageViewProps) => {
               <span>DETAIL</span>
             </button>
           </div>
-
           {/* Map */}
           <div className="relative h-full w-full flex-initial rounded-sm border border-gray-200 bg-white p-5 lg:p-2 dark:border-gray-800 dark:bg-white/[0.03]">
             <MapView
