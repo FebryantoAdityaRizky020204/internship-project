@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 import React from "react";
-import DashboardView from "./views/DashboardView";
+import TableView from "../views/TableView";
 
 export const metadata: Metadata = {
   title: "CCTV Palangka Raya",
   description: "CCTV Di Lingkungan Palangka Raya",
 };
 
-export default function Ecommerce() {
-  return <DashboardView />;
+export default function TablePage() {
+  return (
+    <>
+      <TableView />
+    </>
+  );
 }

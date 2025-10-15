@@ -2,14 +2,14 @@
 import React from "react";
 import { Map } from "@/icons";
 
-export const MineMetrics = () => {
+export const MapMetrics = () => {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6">
       {/* <!-- Metric Item Start --> */}
       <div className="rounded-2xl border border-gray-200 bg-white p-5 md:p-6 dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800">
-          {/* <GroupIcon className="text-gray-800 size-6 dark:text-white/90" /> */}
-          {/* <CheckCircleIcon className="text-gray-800 size-6 dark:text-white/90" /> */}
+          {/* <GroupIcon className="size-6 text-gray-800 dark:text-white/90" />
+          <CheckCircleIcon className="size-6 text-gray-800 dark:text-white/90" /> */}
           <Map className="size-6 text-gray-800 dark:text-white/90" />
         </div>
 

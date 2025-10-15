@@ -1,9 +1,8 @@
 "use client";
 
 import { useSidebar } from "@/context/SidebarContext";
-import AppHeader from "@/layout/AppHeader";
-// import AppSidebar from "@/layout/AppSidebar";
-import AdminSidebar from "./components/AdminSidebar";
+import AdminHeader from "@/layout/AdminHeader";
+import AdminSidebar from "@/layout/AdminSidebar";
 import Backdrop from "@/layout/Backdrop";
 import React from "react";
 
@@ -31,7 +30,7 @@ export default function AdminLayout({
         className={`flex-1 transition-all duration-300 ease-in-out ${mainContentMargin}`}
       >
         {/* Header */}
-        <AppHeader />
+        <AdminHeader />
         {/* Page Content */}
         <div className="mx-auto max-w-(--breakpoint-2xl) p-4 md:p-6">
           {children}
